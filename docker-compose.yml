@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./sales_assistant.db
+      - JWT_SECRET_KEY=dev-secret-change-in-production
+      - DEMO_USER_EMAIL=demo@company.com
+      - DEMO_USER_PASSWORD=demo1234
+    volumes:
+      - backend_data:/app
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:

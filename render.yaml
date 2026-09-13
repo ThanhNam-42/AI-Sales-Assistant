@@ -1,0 +1,21 @@
+# Render Blueprint - triển khai backend tự động khi kết nối repo với Render
+# Xem hướng dẫn deploy chi tiết trong README.md
+services:
+  - type: web
+    name: ai-sales-assistant-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && python -m app.ml.train"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DEMO_USER_EMAIL
+        value: demo@company.com
+      - key: DEMO_USER_PASSWORD
+        value: demo1234
+      - key: DATABASE_URL
+        value: sqlite:///./sales_assistant.db
+      - key: OPENAI_API_KEY
+        sync: false
