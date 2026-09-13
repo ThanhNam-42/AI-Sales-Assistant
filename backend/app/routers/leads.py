@@ -25,9 +25,24 @@ router = APIRouter(
 
 
 def _lead_to_out(lead: Lead) -> LeadOut:
-    data = LeadOut.model_validate(lead)
-    data.top_factors = json.loads(lead.top_factors or "[]")
-    return data
+    # Xây dựng dict thủ công thay vì LeadOut.model_validate(lead) trực tiếp,
+    # vì top_factors được lưu trong DB dạng chuỗi JSON (Text column) chứ
+    # không phải list, nên cần parse trước khi Pydantic validate kiểu list[str].
+    return LeadOut(
+        id=lead.id,
+        name=lead.name,
+        company=lead.company,
+        industry=lead.industry,
+        source=lead.source,
+        deal_size=lead.deal_size,
+        contact_frequency=lead.contact_frequency,
+        days_since_last_contact=lead.days_since_last_contact,
+        response_rate=lead.response_rate,
+        status=lead.status,
+        score=lead.score,
+        top_factors=json.loads(lead.top_factors or "[]"),
+        created_at=lead.created_at,
+    )
 
 
 def _score_lead(lead: Lead) -> None:
