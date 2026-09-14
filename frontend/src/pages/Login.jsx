@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api.js";
+import Field from "../components/Field.jsx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -30,24 +31,20 @@ export default function Login() {
         <h1>AI Sales Assistant</h1>
         <p className="subtitle">Đăng nhập để xem danh sách lead</p>
 
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Mật khẩu
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
+        <Field
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Field
+          label="Mật khẩu"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
         {error && <div className="error-text">{error}</div>}
 

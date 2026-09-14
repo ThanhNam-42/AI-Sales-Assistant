@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api.js";
-import ScoreBadge from "../components/ScoreBadge.jsx";
+import { ScoreRing } from "../components/ScoreBadge.jsx";
 import LeadForm from "../components/LeadForm.jsx";
+import { ChevronLeftIcon, SparklesIcon } from "../components/icons.jsx";
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -76,12 +77,20 @@ export default function LeadDetail() {
     }
   }
 
-  if (!lead) return <p className="empty-state">Đang tải...</p>;
+  if (!lead) {
+    return (
+      <div className="page">
+        <div className="skeleton skeleton-row" style={{ height: 40, width: 120, marginBottom: 20 }} />
+        <div className="skeleton skeleton-row" style={{ height: 120, marginBottom: 18 }} />
+        <div className="skeleton skeleton-row" style={{ height: 180 }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page">
       <button className="btn-link" onClick={() => navigate("/")}>
-        ‹ Quay lại
+        <ChevronLeftIcon /> Quay lại
       </button>
 
       <header className="lead-header">
@@ -92,7 +101,6 @@ export default function LeadDetail() {
           <span className="status-badge" data-status={lead.status}>
             {lead.status}
           </span>
-          <ScoreBadge score={lead.score} />
         </div>
       </header>
 
@@ -105,9 +113,13 @@ export default function LeadDetail() {
         </button>
       </div>
 
-      <section className="card">
-        <h3>Yếu tố ảnh hưởng nhiều nhất</h3>
-        <ul className="factor-list">
+      <section className="card hero-card">
+        <ScoreRing score={lead.score} size="lg" />
+        <div>
+          <div className="hero-score-num">{lead.score}/100</div>
+          <div className="hero-score-label">Điểm ưu tiên chốt đơn</div>
+        </div>
+        <ul className="factor-list" style={{ flex: 1, minWidth: 200 }}>
           {lead.top_factors.map((factor, idx) => (
             <li key={idx}>{factor}</li>
           ))}
@@ -118,22 +130,22 @@ export default function LeadDetail() {
         <div className="card-header-row">
           <h3>Ghi chú cuộc gọi</h3>
           <button
-            className="btn-primary"
+            className={`btn-primary btn-ai${summarizing ? " loading" : ""}`}
             onClick={handleSummarize}
             disabled={summarizing}
           >
-            {summarizing ? "Đang tóm tắt..." : "Tóm tắt bằng AI"}
+            <SparklesIcon /> {summarizing ? "Đang tóm tắt..." : "Tóm tắt bằng AI"}
           </button>
         </div>
 
-        <ul className="note-list">
+        <ul className="timeline">
           {notes.length === 0 && <li className="empty-state">Chưa có ghi chú nào.</li>}
           {notes.map((note) => (
             <li key={note.id}>
               <span className="note-date">
                 {new Date(note.created_at).toLocaleDateString("vi-VN")}
               </span>
-              <span>{note.content}</span>
+              <span className="note-content">{note.content}</span>
             </li>
           ))}
         </ul>

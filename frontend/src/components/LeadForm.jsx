@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Field from "./Field.jsx";
 
 const INDUSTRIES = ["Retail", "Finance", "Tech", "Manufacturing", "Education", "Healthcare"];
 const SOURCES = ["Referral", "Cold Call", "Website", "Event", "Social Media"];
@@ -15,6 +16,27 @@ const EMPTY_FORM = {
   response_rate: 0.5,
   status: STATUSES[0],
 };
+
+function SelectField({ label, value, onChange, options }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className={`field has-value${focused ? "" : ""}`}>
+      <select
+        value={value}
+        onChange={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <label>{label}</label>
+    </div>
+  );
+}
 
 export default function LeadForm({ initial, onCancel, onSubmit, submitting }) {
   const isEdit = Boolean(initial);
@@ -54,111 +76,77 @@ export default function LeadForm({ initial, onCancel, onSubmit, submitting }) {
       <form className="modal-card" onSubmit={handleSubmit}>
         <h2>{isEdit ? "Chỉnh sửa lead" : "Thêm lead mới"}</h2>
 
-        <label>
-          Tên khách hàng
-          <input
-            required
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
+        <Field
+          label="Tên khách hàng"
+          required
+          value={form.name}
+          onChange={(e) => update("name", e.target.value)}
+        />
+
+        <Field
+          label="Công ty"
+          required
+          value={form.company}
+          onChange={(e) => update("company", e.target.value)}
+        />
+
+        <div className="form-row">
+          <SelectField
+            label="Ngành"
+            value={form.industry}
+            onChange={(e) => update("industry", e.target.value)}
+            options={INDUSTRIES}
           />
-        </label>
-
-        <label>
-          Công ty
-          <input
-            required
-            value={form.company}
-            onChange={(e) => update("company", e.target.value)}
+          <SelectField
+            label="Nguồn lead"
+            value={form.source}
+            onChange={(e) => update("source", e.target.value)}
+            options={SOURCES}
           />
-        </label>
-
-        <div className="form-row">
-          <label>
-            Ngành
-            <select
-              value={form.industry}
-              onChange={(e) => update("industry", e.target.value)}
-            >
-              {INDUSTRIES.map((i) => (
-                <option key={i} value={i}>
-                  {i}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Nguồn lead
-            <select
-              value={form.source}
-              onChange={(e) => update("source", e.target.value)}
-            >
-              {SOURCES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
 
         <div className="form-row">
-          <label>
-            Quy mô deal ($)
-            <input
-              type="number"
-              min="0"
-              value={form.deal_size}
-              onChange={(e) => update("deal_size", e.target.value)}
-            />
-          </label>
-          <label>
-            Số lần liên hệ (30 ngày qua)
-            <input
-              type="number"
-              min="0"
-              value={form.contact_frequency}
-              onChange={(e) => update("contact_frequency", e.target.value)}
-            />
-          </label>
+          <Field
+            label="Quy mô deal ($)"
+            type="number"
+            min="0"
+            value={form.deal_size}
+            onChange={(e) => update("deal_size", e.target.value)}
+          />
+          <Field
+            label="Số lần liên hệ (30 ngày qua)"
+            type="number"
+            min="0"
+            value={form.contact_frequency}
+            onChange={(e) => update("contact_frequency", e.target.value)}
+          />
         </div>
 
         <div className="form-row">
-          <label>
-            Số ngày từ lần liên hệ cuối
-            <input
-              type="number"
-              min="0"
-              value={form.days_since_last_contact}
-              onChange={(e) => update("days_since_last_contact", e.target.value)}
-            />
-          </label>
-          <label>
-            Tỉ lệ phản hồi (0-1)
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.05"
-              value={form.response_rate}
-              onChange={(e) => update("response_rate", e.target.value)}
-            />
-          </label>
+          <Field
+            label="Số ngày từ lần liên hệ cuối"
+            type="number"
+            min="0"
+            value={form.days_since_last_contact}
+            onChange={(e) => update("days_since_last_contact", e.target.value)}
+          />
+          <Field
+            label="Tỉ lệ phản hồi (0-1)"
+            type="number"
+            min="0"
+            max="1"
+            step="0.05"
+            value={form.response_rate}
+            onChange={(e) => update("response_rate", e.target.value)}
+          />
         </div>
 
-        <label>
-          Trạng thái
-          <select
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Trạng thái"
+          value={form.status}
+          onChange={(e) => update("status", e.target.value)}
+          options={STATUSES}
+        />
 
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onCancel}>

@@ -1,8 +1,32 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api.js";
-import ScoreBadge from "../components/ScoreBadge.jsx";
+import { ScoreRing } from "../components/ScoreBadge.jsx";
 import LeadForm from "../components/LeadForm.jsx";
+import { SearchIcon, PlusIcon, LogoutIcon } from "../components/icons.jsx";
+
+const AVATAR_COLORS = [
+  "#4f46e5",
+  "#0891b2",
+  "#db2777",
+  "#d97706",
+  "#16a34a",
+  "#7c3aed",
+  "#dc2626",
+  "#0d9488",
+];
+
+function avatarColor(seed) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function initials(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -11,6 +35,7 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [industryFilter, setIndustryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
   async function loadLeads() {
@@ -40,6 +65,14 @@ export default function Dashboard() {
     [leads]
   );
 
+  const visibleLeads = useMemo(() => {
+    if (!search.trim()) return leads;
+    const q = search.trim().toLowerCase();
+    return leads.filter(
+      (l) => l.name.toLowerCase().includes(q) || l.company.toLowerCase().includes(q)
+    );
+  }, [leads, search]);
+
   async function handleCreate(payload) {
     setSubmitting(true);
     try {
@@ -62,78 +95,104 @@ export default function Dashboard() {
         <h1>AI Sales Assistant</h1>
         <div className="topbar-actions">
           <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Thêm lead
+            <PlusIcon /> Thêm lead
           </button>
           <button className="btn-secondary" onClick={handleLogout}>
-            Đăng xuất
+            <LogoutIcon /> Đăng xuất
           </button>
         </div>
       </header>
 
-      <div className="filters">
-        <label>
-          Ngành
+      <div className="toolbar">
+        <div className="search-box">
+          <SearchIcon />
+          <input
+            placeholder="Tìm theo tên hoặc công ty..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {statuses.length > 0 && (
+          <div className="pill-group">
+            <button
+              className={`pill${statusFilter === "" ? " active" : ""}`}
+              onClick={() => setStatusFilter("")}
+            >
+              Tất cả
+            </button>
+            {statuses.map((s) => (
+              <button
+                key={s}
+                className={`pill${statusFilter === s ? " active" : ""}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {industries.length > 0 && (
           <select
+            className="select-pill"
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
           >
-            <option value="">Tất cả</option>
+            <option value="">Tất cả ngành</option>
             {industries.map((i) => (
               <option key={i} value={i}>
                 {i}
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Trạng thái
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tất cả</option>
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+        )}
       </div>
 
       {loading ? (
-        <p className="empty-state">Đang tải...</p>
-      ) : leads.length === 0 ? (
+        <div className="skeleton-list">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton skeleton-row" />
+          ))}
+        </div>
+      ) : visibleLeads.length === 0 ? (
         <p className="empty-state">
-          Chưa có lead nào. Bấm "Thêm lead" để bắt đầu.
+          {leads.length === 0
+            ? 'Chưa có lead nào. Bấm "Thêm lead" để bắt đầu.'
+            : "Không tìm thấy lead phù hợp."}
         </p>
       ) : (
-        <table className="lead-table">
-          <thead>
-            <tr>
-              <th>Tên KH</th>
-              <th>Công ty</th>
-              <th>Ngành</th>
-              <th>Điểm</th>
-              <th>Trạng thái</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id} onClick={() => navigate(`/leads/${lead.id}`)}>
-                <td>{lead.name}</td>
-                <td>{lead.company}</td>
-                <td>{lead.industry}</td>
-                <td>
-                  <ScoreBadge score={lead.score} />
-                </td>
-                <td>{lead.status}</td>
-                <td className="row-arrow">›</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="lead-list">
+          {visibleLeads.map((lead, idx) => (
+            <div
+              key={lead.id}
+              className="lead-row"
+              style={{ animationDelay: `${Math.min(idx, 8) * 0.03}s` }}
+              onClick={() => navigate(`/leads/${lead.id}`)}
+            >
+              <div
+                className="lead-avatar"
+                style={{ background: avatarColor(lead.industry || lead.name) }}
+              >
+                {initials(lead.name)}
+              </div>
+              <div className="lead-row-main">
+                <div className="lead-row-name">
+                  {lead.name}
+                  <span className="status-badge" data-status={lead.status}>
+                    {lead.status}
+                  </span>
+                </div>
+                <div className="lead-row-sub">{lead.company}</div>
+              </div>
+              <div className="lead-row-meta">
+                <span className="lead-row-industry">{lead.industry}</span>
+                <ScoreRing score={lead.score} />
+                <span className="row-arrow">›</span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {showForm && (

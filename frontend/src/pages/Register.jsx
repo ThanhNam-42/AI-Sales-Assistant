@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api.js";
+import Field from "../components/Field.jsx";
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -38,32 +39,26 @@ export default function Register() {
           Đăng ký để có danh sách lead riêng, lưu lại theo tài khoản của bạn
         </p>
 
-        <label>
-          Họ tên
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-        </label>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Mật khẩu
-          <input
-            type="password"
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
+        <Field
+          label="Họ tên"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
+        <Field
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Field
+          label="Mật khẩu (tối thiểu 6 ký tự)"
+          type="password"
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
         {error && <div className="error-text">{error}</div>}
 
