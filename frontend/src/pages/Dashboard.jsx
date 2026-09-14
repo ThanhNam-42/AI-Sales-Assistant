@@ -62,9 +62,18 @@ export default function Dashboard() {
       if (search) params.search = search;
       const { data } = await api.get("/leads", { params });
       if (myRequest !== requestId.current) return; // kết quả cũ, bỏ qua
-      setTotal(data.total);
-      setPage(data.page);
-      setLeads((prev) => (append ? [...prev, ...data.items] : data.items));
+      // Phòng trường hợp response không đúng format mong đợi (backend đang
+      // khởi động lại, lỗi mạng tạm thời...) để tránh leads bị undefined
+      // làm crash toàn bộ trang (không có Error Boundary bọc ngoài).
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setTotal(typeof data?.total === "number" ? data.total : 0);
+      setPage(typeof data?.page === "number" ? data.page : pageToLoad);
+      setLeads((prev) => (append ? [...prev, ...items] : items));
+    } catch (err) {
+      if (myRequest === requestId.current && !append) {
+        setLeads([]);
+        setTotal(0);
+      }
     } finally {
       if (myRequest === requestId.current) {
         setLoading(false);

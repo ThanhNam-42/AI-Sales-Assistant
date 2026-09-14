@@ -24,7 +24,7 @@ export default function LeadDetail() {
       api.get(`/leads/${id}/notes`),
     ]);
     setLead(leadResp.data);
-    setNotes(notesResp.data);
+    setNotes(Array.isArray(notesResp.data) ? notesResp.data : []);
   }
 
   useEffect(() => {
