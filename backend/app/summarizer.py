@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import re
 from collections import Counter
+from typing import Optional
 
 STOPWORDS_VI = {
     "và", "là", "của", "có", "cho", "được", "này", "đã", "khách", "hàng",
@@ -63,7 +64,7 @@ def _suggest_next_action(notes: list[str]) -> str:
     return "Tiếp tục theo dõi và liên hệ theo chu kỳ chăm sóc tiêu chuẩn."
 
 
-def _try_openai_summary(notes: list[str]) -> str | None:
+def _try_openai_summary(notes: list[str]) -> Optional[str]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None

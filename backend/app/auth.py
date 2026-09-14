@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -34,10 +35,26 @@ def create_access_token(subject: str) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def authenticate_user(db: Session, email: str, password: str) -> User | None:
+def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(password, user.hashed_password):
         return None
+    return user
+
+
+def register_user(db: Session, email: str, password: str, full_name: str = "") -> User:
+    """Tạo tài khoản mới. Raise ValueError nếu email đã tồn tại."""
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        raise ValueError("Email đã được đăng ký")
+    user = User(
+        email=email,
+        hashed_password=hash_password(password),
+        full_name=full_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -9,6 +10,12 @@ from pydantic import BaseModel, EmailStr, Field
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    full_name: str = ""
 
 
 class Token(BaseModel):
@@ -34,15 +41,15 @@ class LeadCreate(LeadBase):
 
 
 class LeadUpdate(BaseModel):
-    name: str | None = None
-    company: str | None = None
-    industry: str | None = None
-    source: str | None = None
-    deal_size: float | None = None
-    contact_frequency: int | None = None
-    days_since_last_contact: int | None = None
-    response_rate: float | None = None
-    status: str | None = None
+    name: Optional[str] = None
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    source: Optional[str] = None
+    deal_size: Optional[float] = None
+    contact_frequency: Optional[int] = None
+    days_since_last_contact: Optional[int] = None
+    response_rate: Optional[float] = None
+    status: Optional[str] = None
 
 
 class LeadOut(LeadBase):
@@ -71,5 +78,5 @@ class NoteOut(BaseModel):
 
 class SummaryOut(BaseModel):
     summary: str
-    next_action: str | None = None
+    next_action: Optional[str] = None
     method: str

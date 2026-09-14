@@ -93,3 +93,25 @@ def test_notes_and_summarize_flow(client, auth_headers):
     body = summary.json()
     assert body["summary"]
     assert body["method"] in ("rule_based", "openai")
+
+
+def test_leads_are_isolated_per_user(client, auth_headers):
+    # Tạo 1 lead bằng tài khoản demo (tài khoản chung dùng ở các test khác)
+    demo_lead = client.post("/leads", json=_lead_payload(), headers=auth_headers).json()
+
+    # Đăng ký tài khoản mới — chưa có lead nào
+    reg = client.post(
+        "/auth/register",
+        json={"email": "isolation_test@example.com", "password": "abcdef12"},
+    )
+    assert reg.status_code == 201, reg.text
+    other_headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
+
+    # Danh sách lead của tài khoản mới không được chứa lead của tài khoản demo
+    other_list = client.get("/leads", headers=other_headers)
+    assert other_list.status_code == 200
+    assert all(lead["id"] != demo_lead["id"] for lead in other_list.json())
+
+    # Không thể truy cập trực tiếp lead của người khác qua id
+    forbidden = client.get(f"/leads/{demo_lead['id']}", headers=other_headers)
+    assert forbidden.status_code == 404

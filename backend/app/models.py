@@ -16,11 +16,16 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(255), default="")
 
+    leads: Mapped[list["Lead"]] = relationship(
+        "Lead", back_populates="owner", cascade="all, delete-orphan"
+    )
+
 
 class Lead(Base):
     __tablename__ = "leads"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     company: Mapped[str] = mapped_column(String(255))
     industry: Mapped[str] = mapped_column(String(100))
@@ -41,6 +46,7 @@ class Lead(Base):
     notes: Mapped[list["Note"]] = relationship(
         "Note", back_populates="lead", cascade="all, delete-orphan"
     )
+    owner: Mapped["User"] = relationship("User", back_populates="leads")
 
 
 class Note(Base):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.ml.predict import predict_score
-from app.models import Lead, Note
+from app.models import Lead, Note, User
 from app.schemas import (
     LeadCreate,
     LeadOut,
@@ -19,9 +20,7 @@ from app.schemas import (
 )
 from app.summarizer import summarize_notes
 
-router = APIRouter(
-    prefix="/leads", tags=["leads"], dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/leads", tags=["leads"])
 
 
 def _lead_to_out(lead: Lead) -> LeadOut:
@@ -45,6 +44,17 @@ def _lead_to_out(lead: Lead) -> LeadOut:
     )
 
 
+def _get_owned_lead(db: Session, lead_id: int, user: User) -> Lead:
+    lead = (
+        db.query(Lead)
+        .filter(Lead.id == lead_id, Lead.user_id == user.id)
+        .first()
+    )
+    if not lead:
+        raise HTTPException(404, "Không tìm thấy lead")
+    return lead
+
+
 def _score_lead(lead: Lead) -> None:
     result = predict_score(
         {
@@ -62,12 +72,13 @@ def _score_lead(lead: Lead) -> None:
 
 @router.get("", response_model=list[LeadOut])
 def list_leads(
-    industry: str | None = None,
-    status_filter: str | None = None,
-    source: str | None = None,
+    industry: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    source: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Lead)
+    query = db.query(Lead).filter(Lead.user_id == current_user.id)
     if industry:
         query = query.filter(Lead.industry == industry)
     if status_filter:
@@ -79,8 +90,12 @@ def list_leads(
 
 
 @router.post("", response_model=LeadOut, status_code=201)
-def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
-    lead = Lead(**payload.model_dump())
+def create_lead(
+    payload: LeadCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = Lead(**payload.model_dump(), user_id=current_user.id)
     _score_lead(lead)
     db.add(lead)
     db.commit()
@@ -89,18 +104,23 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}", response_model=LeadOut)
-def get_lead(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
+def get_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
     return _lead_to_out(lead)
 
 
 @router.put("/{lead_id}", response_model=LeadOut)
-def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
+def update_lead(
+    lead_id: int,
+    payload: LeadUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(lead, field, value)
     _score_lead(lead)
@@ -110,20 +130,25 @@ def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/{lead_id}", status_code=204)
-def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
+def delete_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
     db.delete(lead)
     db.commit()
 
 
 @router.post("/{lead_id}/notes", response_model=NoteOut, status_code=201)
-def add_note(lead_id: int, payload: NoteCreate, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
-    note = Note(lead_id=lead_id, content=payload.content)
+def add_note(
+    lead_id: int,
+    payload: NoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
+    note = Note(lead_id=lead.id, content=payload.content)
     db.add(note)
     db.commit()
     db.refresh(note)
@@ -131,18 +156,22 @@ def add_note(lead_id: int, payload: NoteCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/notes", response_model=list[NoteOut])
-def list_notes(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
+def list_notes(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
     return lead.notes
 
 
 @router.post("/{lead_id}/summarize", response_model=SummaryOut)
-def summarize_lead_notes(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.get(Lead, lead_id)
-    if not lead:
-        raise HTTPException(404, "Không tìm thấy lead")
+def summarize_lead_notes(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    lead = _get_owned_lead(db, lead_id, current_user)
     notes_content = [n.content for n in lead.notes]
     result = summarize_notes(notes_content)
     return SummaryOut(**result)

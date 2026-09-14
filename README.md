@@ -35,7 +35,7 @@ Chi tiết & lý do chọn stack: xem [`docs/architecture.md`](./docs/architectu
 
 - Frontend: https://ai-sales-assistant-steel.vercel.app
 - Backend API docs (Swagger): https://ai-sales-assistant-api-ulqe.onrender.com/docs
-- Tài khoản demo: `demo@company.com` / `demo1234`
+- Tài khoản demo: `demo@company.com` / `demo1234`, hoặc tự đăng ký tài khoản mới — mỗi tài khoản có danh sách lead riêng, độc lập với tài khoản khác.
 
 > Lưu ý: backend deploy trên gói free của Render nên sẽ "ngủ" sau ~15 phút không có truy cập — request đầu tiên có thể mất 20-30s để khởi động lại.
 
@@ -84,6 +84,12 @@ Test bao gồm: xác thực (auth), CRUD lead, luồng ghi chú + tóm tắt AI,
 3. Sau khi deploy xong, Render cấp một URL dạng `https://ai-sales-assistant-api.onrender.com`.
 4. (Tuỳ chọn) Thêm biến môi trường `OPENAI_API_KEY` trong Render dashboard nếu muốn dùng tóm tắt bằng LLM thật thay vì rule-based.
 
+> ⚠️ **Lưu ý về dữ liệu:** gói Render Free không có persistent disk — nếu dùng SQLite mặc định (`DATABASE_URL=sqlite:///...`), dữ liệu sẽ **mất mỗi khi service ngủ rồi được đánh thức lại hoặc mỗi lần deploy**. Để dữ liệu (tài khoản, lead) được lưu lại lâu dài, làm thêm bước sau:
+> 1. Trên Render Dashboard → **New → PostgreSQL** → tạo 1 database free (giới hạn 1GB, 30 ngày rồi cần gia hạn/nâng cấp gói trả phí để duy trì).
+> 2. Copy **Internal Database URL** của database vừa tạo.
+> 3. Vào service backend (`ai-sales-assistant-api`) → tab **Environment** → sửa biến `DATABASE_URL` thành URL vừa copy (dạng `postgresql://user:pass@host/dbname`).
+> 4. Vào **Manual Deploy → Clear build cache & deploy** để backend tạo lại bảng trên Postgres (code đã hỗ trợ sẵn qua `psycopg2-binary` trong `requirements.txt`).
+
 ### Frontend → Vercel
 1. Vào [vercel.com](https://vercel.com) → New Project → import repo, chọn thư mục `frontend` làm root.
 2. Thêm biến môi trường `VITE_API_URL` = URL backend Render ở bước trên.
@@ -104,7 +110,7 @@ ai-sales-assistant/
 │   ├── requirements.txt, Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/       # Login, Dashboard, LeadDetail
+│   │   ├── pages/       # Login, Register, Dashboard, LeadDetail
 │   │   ├── components/  # LeadForm, ScoreBadge
 │   ├── package.json, vite.config.js
 ├── docker-compose.yml
@@ -116,7 +122,7 @@ ai-sales-assistant/
 
 - **BA:** tài liệu BRD, use case diagram, user flow (sequence diagram), wireframe đầy đủ trước khi code — thể hiện quy trình phân tích nghiệp vụ bài bản.
 - **AI/ML:** tự xây pipeline sinh dữ liệu, huấn luyện, đánh giá (accuracy/ROC-AUC), và giải thích mô hình (feature importance dễ hiểu), không chỉ gọi API có sẵn.
-- **Software Engineering:** kiến trúc rõ ràng (API/DB/ML tách lớp), REST API chuẩn, JWT auth, test tự động, CI/CD, containerize, và deploy thật lên cloud.
+- **Software Engineering:** kiến trúc rõ ràng (API/DB/ML tách lớp), REST API chuẩn, JWT auth (đăng ký + đăng nhập, dữ liệu cách ly theo từng tài khoản), test tự động, CI/CD, containerize, và deploy thật lên cloud.
 
 ## Giấy phép
 MIT
