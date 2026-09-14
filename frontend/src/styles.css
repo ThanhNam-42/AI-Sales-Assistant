@@ -246,7 +246,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .lead-header h1 {
@@ -257,6 +259,58 @@ body {
 .lead-company {
   color: var(--muted);
   font-weight: 400;
+}
+
+.lead-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lead-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.btn-danger {
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-danger:hover {
+  background: #fef2f2;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: var(--muted);
+}
+
+.status-badge[data-status="Đang đàm phán"] {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge[data-status="Đã chốt"] {
+  background: #dcfce7;
+  color: var(--green);
+}
+
+.status-badge[data-status="Không quan tâm"] {
+  background: #fee2e2;
+  color: var(--red);
 }
 
 .card {

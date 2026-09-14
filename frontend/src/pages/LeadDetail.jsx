@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api.js";
 import ScoreBadge from "../components/ScoreBadge.jsx";
+import LeadForm from "../components/LeadForm.jsx";
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -12,6 +13,9 @@ export default function LeadDetail() {
   const [summary, setSummary] = useState(null);
   const [summarizing, setSummarizing] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function loadAll() {
     const [leadResp, notesResp] = await Promise.all([
@@ -50,6 +54,28 @@ export default function LeadDetail() {
     }
   }
 
+  async function handleEdit(payload) {
+    setEditSubmitting(true);
+    try {
+      await api.put(`/leads/${id}`, payload);
+      setShowEditForm(false);
+      await loadAll();
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Xoá lead này? Hành động không thể hoàn tác.")) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/leads/${id}`);
+      navigate("/");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (!lead) return <p className="empty-state">Đang tải...</p>;
 
   return (
@@ -62,8 +88,22 @@ export default function LeadDetail() {
         <h1>
           {lead.name} <span className="lead-company">— {lead.company}</span>
         </h1>
-        <ScoreBadge score={lead.score} />
+        <div className="lead-header-actions">
+          <span className="status-badge" data-status={lead.status}>
+            {lead.status}
+          </span>
+          <ScoreBadge score={lead.score} />
+        </div>
       </header>
+
+      <div className="lead-actions-row">
+        <button className="btn-secondary" onClick={() => setShowEditForm(true)}>
+          Sửa
+        </button>
+        <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
+          {deleting ? "Đang xoá..." : "Xoá lead"}
+        </button>
+      </div>
 
       <section className="card">
         <h3>Yếu tố ảnh hưởng nhiều nhất</h3>
@@ -120,6 +160,15 @@ export default function LeadDetail() {
           </div>
         )}
       </section>
+
+      {showEditForm && (
+        <LeadForm
+          initial={lead}
+          submitting={editSubmitting}
+          onCancel={() => setShowEditForm(false)}
+          onSubmit={handleEdit}
+        />
+      )}
     </div>
   );
 }

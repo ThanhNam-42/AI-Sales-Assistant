@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 const INDUSTRIES = ["Retail", "Finance", "Tech", "Manufacturing", "Education", "Healthcare"];
 const SOURCES = ["Referral", "Cold Call", "Website", "Event", "Social Media"];
+export const STATUSES = ["Mới", "Đang đàm phán", "Đã chốt", "Không quan tâm"];
 
 const EMPTY_FORM = {
   name: "",
@@ -12,11 +13,26 @@ const EMPTY_FORM = {
   contact_frequency: 1,
   days_since_last_contact: 3,
   response_rate: 0.5,
-  status: "Mới",
+  status: STATUSES[0],
 };
 
-export default function LeadForm({ onCancel, onSubmit, submitting }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+export default function LeadForm({ initial, onCancel, onSubmit, submitting }) {
+  const isEdit = Boolean(initial);
+  const [form, setForm] = useState(() =>
+    initial
+      ? {
+          name: initial.name,
+          company: initial.company,
+          industry: initial.industry,
+          source: initial.source,
+          deal_size: initial.deal_size,
+          contact_frequency: initial.contact_frequency,
+          days_since_last_contact: initial.days_since_last_contact,
+          response_rate: initial.response_rate,
+          status: initial.status,
+        }
+      : EMPTY_FORM
+  );
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -36,7 +52,7 @@ export default function LeadForm({ onCancel, onSubmit, submitting }) {
   return (
     <div className="modal-overlay">
       <form className="modal-card" onSubmit={handleSubmit}>
-        <h2>Thêm lead mới</h2>
+        <h2>{isEdit ? "Chỉnh sửa lead" : "Thêm lead mới"}</h2>
 
         <label>
           Tên khách hàng
@@ -130,12 +146,30 @@ export default function LeadForm({ onCancel, onSubmit, submitting }) {
           </label>
         </div>
 
+        <label>
+          Trạng thái
+          <select
+            value={form.status}
+            onChange={(e) => update("status", e.target.value)}
+          >
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onCancel}>
             Huỷ
           </button>
           <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? "Đang lưu..." : "Lưu & Chấm điểm"}
+            {submitting
+              ? "Đang lưu..."
+              : isEdit
+              ? "Lưu thay đổi"
+              : "Lưu & Chấm điểm"}
           </button>
         </div>
       </form>

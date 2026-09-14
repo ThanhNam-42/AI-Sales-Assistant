@@ -33,9 +33,11 @@ Chi tiết & lý do chọn stack: xem [`docs/architecture.md`](./docs/architectu
 
 ## Demo
 
-- Frontend: `<điền link Vercel sau khi deploy>`
-- Backend API docs (Swagger): `<điền link Render>/docs`
+- Frontend: https://ai-sales-assistant-steel.vercel.app
+- Backend API docs (Swagger): https://ai-sales-assistant-api-ulqe.onrender.com/docs
 - Tài khoản demo: `demo@company.com` / `demo1234`
+
+> Lưu ý: backend deploy trên gói free của Render nên sẽ "ngủ" sau ~15 phút không có truy cập — request đầu tiên có thể mất 20-30s để khởi động lại.
 
 ## Chạy local
 
