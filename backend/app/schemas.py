@@ -62,6 +62,13 @@ class LeadOut(LeadBase):
         from_attributes = True
 
 
+class LeadPage(BaseModel):
+    items: list[LeadOut]
+    total: int
+    page: int
+    page_size: int
+
+
 # ---------- Note ----------
 class NoteCreate(BaseModel):
     content: str = Field(min_length=1)

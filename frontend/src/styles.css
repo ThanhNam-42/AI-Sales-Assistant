@@ -565,6 +565,20 @@ body {
   color: var(--primary);
 }
 
+.load-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.lead-count-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .empty-state {
   color: var(--muted);
   text-align: center;

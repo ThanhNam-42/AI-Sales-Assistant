@@ -13,6 +13,7 @@ from app.models import Lead, Note, User
 from app.schemas import (
     LeadCreate,
     LeadOut,
+    LeadPage,
     LeadUpdate,
     NoteCreate,
     NoteOut,
@@ -70,14 +71,21 @@ def _score_lead(lead: Lead) -> None:
     lead.top_factors = json.dumps(result["top_factors"], ensure_ascii=False)
 
 
-@router.get("", response_model=list[LeadOut])
+@router.get("", response_model=LeadPage)
 def list_leads(
     industry: Optional[str] = None,
     status_filter: Optional[str] = None,
     source: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Chặn page/page_size bất thường để tránh query quá nặng hoặc lỗi offset âm.
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+
     query = db.query(Lead).filter(Lead.user_id == current_user.id)
     if industry:
         query = query.filter(Lead.industry == industry)
@@ -85,8 +93,25 @@ def list_leads(
         query = query.filter(Lead.status == status_filter)
     if source:
         query = query.filter(Lead.source == source)
-    leads = query.order_by(Lead.score.desc()).all()
-    return [_lead_to_out(lead) for lead in leads]
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(
+            (Lead.name.ilike(like)) | (Lead.company.ilike(like))
+        )
+
+    total = query.count()
+    leads = (
+        query.order_by(Lead.score.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return LeadPage(
+        items=[_lead_to_out(lead) for lead in leads],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.post("", response_model=LeadOut, status_code=201)

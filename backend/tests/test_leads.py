@@ -43,8 +43,44 @@ def test_hot_lead_scores_higher_than_cold_lead(client, auth_headers):
 def test_list_leads_sorted_by_score_desc(client, auth_headers):
     resp = client.get("/leads", headers=auth_headers)
     assert resp.status_code == 200
-    scores = [lead["score"] for lead in resp.json()]
+    body = resp.json()
+    assert "items" in body and "total" in body
+    scores = [lead["score"] for lead in body["items"]]
     assert scores == sorted(scores, reverse=True)
+
+
+def test_list_leads_pagination(client, auth_headers):
+    for _ in range(5):
+        client.post("/leads", json=_lead_payload(), headers=auth_headers)
+
+    page1 = client.get("/leads", params={"page": 1, "page_size": 2}, headers=auth_headers)
+    assert page1.status_code == 200
+    body1 = page1.json()
+    assert len(body1["items"]) == 2
+    assert body1["total"] >= 5
+    assert body1["page"] == 1
+    assert body1["page_size"] == 2
+
+    page2 = client.get("/leads", params={"page": 2, "page_size": 2}, headers=auth_headers)
+    ids_page1 = {lead["id"] for lead in body1["items"]}
+    ids_page2 = {lead["id"] for lead in page2.json()["items"]}
+    assert ids_page1.isdisjoint(ids_page2)
+
+
+def test_list_leads_search_by_name_or_company(client, auth_headers):
+    client.post(
+        "/leads",
+        json=_lead_payload(name="Trần Thị Unique", company="Zeta Corp"),
+        headers=auth_headers,
+    )
+    resp = client.get("/leads", params={"search": "Unique"}, headers=auth_headers)
+    assert resp.status_code == 200
+    names = [lead["name"] for lead in resp.json()["items"]]
+    assert "Trần Thị Unique" in names
+
+    resp2 = client.get("/leads", params={"search": "Zeta"}, headers=auth_headers)
+    companies = [lead["company"] for lead in resp2.json()["items"]]
+    assert "Zeta Corp" in companies
 
 
 def test_get_update_delete_lead_lifecycle(client, auth_headers):
@@ -110,7 +146,9 @@ def test_leads_are_isolated_per_user(client, auth_headers):
     # Danh sách lead của tài khoản mới không được chứa lead của tài khoản demo
     other_list = client.get("/leads", headers=other_headers)
     assert other_list.status_code == 200
-    assert all(lead["id"] != demo_lead["id"] for lead in other_list.json())
+    assert all(
+        lead["id"] != demo_lead["id"] for lead in other_list.json()["items"]
+    )
 
     # Không thể truy cập trực tiếp lead của người khác qua id
     forbidden = client.get(f"/leads/{demo_lead['id']}", headers=other_headers)

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Field from "./Field.jsx";
 
-const INDUSTRIES = ["Retail", "Finance", "Tech", "Manufacturing", "Education", "Healthcare"];
+export const INDUSTRIES = ["Retail", "Finance", "Tech", "Manufacturing", "Education", "Healthcare"];
 const SOURCES = ["Referral", "Cold Call", "Website", "Event", "Social Media"];
 export const STATUSES = ["Mới", "Đang đàm phán", "Đã chốt", "Không quan tâm"];
 

@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api.js";
 import { ScoreRing } from "../components/ScoreBadge.jsx";
-import LeadForm from "../components/LeadForm.jsx";
+import LeadForm, { INDUSTRIES, STATUSES } from "../components/LeadForm.jsx";
 import { SearchIcon, PlusIcon, LogoutIcon } from "../components/icons.jsx";
+
+const PAGE_SIZE = 20;
 
 const AVATAR_COLORS = [
   "#4f46e5",
@@ -30,55 +32,61 @@ function initials(name) {
 
 export default function Dashboard() {
   const [leads, setLeads] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [industryFilter, setIndustryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const requestId = useRef(0);
 
-  async function loadLeads() {
-    setLoading(true);
+  // Debounce ô tìm kiếm 350ms trước khi gửi lên server, tránh gọi API liên tục khi gõ.
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  async function fetchPage(pageToLoad, { append } = {}) {
+    const myRequest = ++requestId.current;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
-      const params = {};
+      const params = { page: pageToLoad, page_size: PAGE_SIZE };
       if (industryFilter) params.industry = industryFilter;
       if (statusFilter) params.status_filter = statusFilter;
+      if (search) params.search = search;
       const { data } = await api.get("/leads", { params });
-      setLeads(data);
+      if (myRequest !== requestId.current) return; // kết quả cũ, bỏ qua
+      setTotal(data.total);
+      setPage(data.page);
+      setLeads((prev) => (append ? [...prev, ...data.items] : data.items));
     } finally {
-      setLoading(false);
+      if (myRequest === requestId.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }
 
+  // Đổi filter/search -> nạp lại từ trang 1.
   useEffect(() => {
-    loadLeads();
+    fetchPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [industryFilter, statusFilter]);
+  }, [industryFilter, statusFilter, search]);
 
-  const industries = useMemo(
-    () => Array.from(new Set(leads.map((l) => l.industry))).sort(),
-    [leads]
-  );
-  const statuses = useMemo(
-    () => Array.from(new Set(leads.map((l) => l.status))).sort(),
-    [leads]
-  );
-
-  const visibleLeads = useMemo(() => {
-    if (!search.trim()) return leads;
-    const q = search.trim().toLowerCase();
-    return leads.filter(
-      (l) => l.name.toLowerCase().includes(q) || l.company.toLowerCase().includes(q)
-    );
-  }, [leads, search]);
+  const hasMore = leads.length < total;
 
   async function handleCreate(payload) {
     setSubmitting(true);
     try {
       await api.post("/leads", payload);
       setShowForm(false);
-      await loadLeads();
+      await fetchPage(1);
     } finally {
       setSubmitting(false);
     }
@@ -108,45 +116,41 @@ export default function Dashboard() {
           <SearchIcon />
           <input
             placeholder="Tìm theo tên hoặc công ty..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
 
-        {statuses.length > 0 && (
-          <div className="pill-group">
-            <button
-              className={`pill${statusFilter === "" ? " active" : ""}`}
-              onClick={() => setStatusFilter("")}
-            >
-              Tất cả
-            </button>
-            {statuses.map((s) => (
-              <button
-                key={s}
-                className={`pill${statusFilter === s ? " active" : ""}`}
-                onClick={() => setStatusFilter(s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {industries.length > 0 && (
-          <select
-            className="select-pill"
-            value={industryFilter}
-            onChange={(e) => setIndustryFilter(e.target.value)}
+        <div className="pill-group">
+          <button
+            className={`pill${statusFilter === "" ? " active" : ""}`}
+            onClick={() => setStatusFilter("")}
           >
-            <option value="">Tất cả ngành</option>
-            {industries.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        )}
+            Tất cả
+          </button>
+          {STATUSES.map((s) => (
+            <button
+              key={s}
+              className={`pill${statusFilter === s ? " active" : ""}`}
+              onClick={() => setStatusFilter(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <select
+          className="select-pill"
+          value={industryFilter}
+          onChange={(e) => setIndustryFilter(e.target.value)}
+        >
+          <option value="">Tất cả ngành</option>
+          {INDUSTRIES.map((i) => (
+            <option key={i} value={i}>
+              {i}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
@@ -155,44 +159,61 @@ export default function Dashboard() {
             <div key={i} className="skeleton skeleton-row" />
           ))}
         </div>
-      ) : visibleLeads.length === 0 ? (
+      ) : leads.length === 0 ? (
         <p className="empty-state">
-          {leads.length === 0
+          {total === 0 && !search && !industryFilter && !statusFilter
             ? 'Chưa có lead nào. Bấm "Thêm lead" để bắt đầu.'
             : "Không tìm thấy lead phù hợp."}
         </p>
       ) : (
-        <div className="lead-list">
-          {visibleLeads.map((lead, idx) => (
-            <div
-              key={lead.id}
-              className="lead-row"
-              style={{ animationDelay: `${Math.min(idx, 8) * 0.03}s` }}
-              onClick={() => navigate(`/leads/${lead.id}`)}
-            >
+        <>
+          <div className="lead-list">
+            {leads.map((lead, idx) => (
               <div
-                className="lead-avatar"
-                style={{ background: avatarColor(lead.industry || lead.name) }}
+                key={lead.id}
+                className="lead-row"
+                style={{ animationDelay: `${Math.min(idx, 8) * 0.03}s` }}
+                onClick={() => navigate(`/leads/${lead.id}`)}
               >
-                {initials(lead.name)}
-              </div>
-              <div className="lead-row-main">
-                <div className="lead-row-name">
-                  {lead.name}
-                  <span className="status-badge" data-status={lead.status}>
-                    {lead.status}
-                  </span>
+                <div
+                  className="lead-avatar"
+                  style={{ background: avatarColor(lead.industry || lead.name) }}
+                >
+                  {initials(lead.name)}
                 </div>
-                <div className="lead-row-sub">{lead.company}</div>
+                <div className="lead-row-main">
+                  <div className="lead-row-name">
+                    {lead.name}
+                    <span className="status-badge" data-status={lead.status}>
+                      {lead.status}
+                    </span>
+                  </div>
+                  <div className="lead-row-sub">{lead.company}</div>
+                </div>
+                <div className="lead-row-meta">
+                  <span className="lead-row-industry">{lead.industry}</span>
+                  <ScoreRing score={lead.score} />
+                  <span className="row-arrow">›</span>
+                </div>
               </div>
-              <div className="lead-row-meta">
-                <span className="lead-row-industry">{lead.industry}</span>
-                <ScoreRing score={lead.score} />
-                <span className="row-arrow">›</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <div className="load-more-row">
+            <span className="lead-count-hint">
+              Đang hiển thị {leads.length}/{total} lead
+            </span>
+            {hasMore && (
+              <button
+                className="btn-secondary"
+                onClick={() => fetchPage(page + 1, { append: true })}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Đang tải..." : "Tải thêm"}
+              </button>
+            )}
+          </div>
+        </>
       )}
 
       {showForm && (
