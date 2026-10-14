@@ -7,6 +7,16 @@ Demo account: `demo@company.com` / `demo1234`, or register your own (each accoun
 
 > The backend runs on Render's free tier and sleeps after ~15 minutes of inactivity, so the first request can take 20–30 seconds.
 
+## Screenshots
+
+Leads ranked by score, with filters by status and industry (UI is in Vietnamese):
+
+![Dashboard](docs/images/dashboard.png)
+
+Lead detail: the score with the main factors behind it, call notes, and an AI summary with a suggested next step:
+
+![Lead detail](docs/images/lead-detail.png)
+
 ## Why I built it
 
 I spent a year as a sales team lead at an education company. Two problems came up every day: with hundreds of leads in the list, there was no objective way to decide who to call first, and writing up and re-reading call notes took a lot of time. This project tackles both.
